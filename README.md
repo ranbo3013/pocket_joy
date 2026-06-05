@@ -1,58 +1,58 @@
-# PocketJoy（口袋快乐）
+# PocketJoy
 
-> 把上班时间转化为即时正反馈的移动端情绪工具
+> A mobile emotional wellness tool that turns work time into instant positive feedback
 
-面向职场人的解压治愈 App。通过大口袋、金币掉落、轻量音效与震动反馈，让用户在工作间隙获得「我正在积累快乐」的感受。**首页只展示金币与金条，不展示真实金额或货币符号。**
-
----
-
-## 技术栈
-
-| 类别 | 选型 |
-|------|------|
-| 框架 | Flutter 3.x（仅竖屏，iOS + Android） |
-| 状态管理 | Provider |
-| 敏感数据存储 | flutter_secure_storage（税后月薪加密存储） |
-| 普通设置 | shared_preferences |
-| 统计流水 | Hive |
-| 音效播放 | audioplayers |
-| 本地通知 | flutter_local_notifications + timezone |
-| 动效 | 代码动画 + PNG 序列（Rive 预留接口） |
-| 平台支持 | iOS / Android 移动端 |
+A de-stress and healing app for professionals. Through a visual money bag, falling coins, lightweight sound effects, and haptic feedback, users get a sense of "I'm accumulating joy" during work breaks. **The home screen only displays coins and gold bars — no real currency amounts or symbols.**
 
 ---
 
-## 项目结构
+## Tech Stack
+
+| Category | Choice |
+|----------|--------|
+| Framework | Flutter 3.x (portrait only, iOS + Android) |
+| State Management | Provider |
+| Sensitive Data | flutter_secure_storage (encrypted after-tax monthly salary) |
+| General Settings | shared_preferences |
+| Stats Persistence | Hive |
+| Audio Playback | audioplayers |
+| Local Notifications | flutter_local_notifications + timezone |
+| Animations | Code-driven + PNG assets (Rive integration reserved) |
+| Platform Support | iOS / Android mobile |
+
+---
+
+## Project Structure
 
 ```
 pocketjoy/
 ├── assets/
-│   ├── animations/        # Rive/Lottie 动效文件（预留）
-│   ├── audio/             # 短音效 MP3
-│   ├── brand/             # App 图标、启动页
-│   ├── icons/             # SVG 图标
-│   └── images/            # 位图资产（口袋、金币、金条等）
+│   ├── animations/        # Rive/Lottie animation files (reserved)
+│   ├── audio/             # Short MP3 sound effects
+│   ├── brand/             # App icon, splash screen
+│   ├── icons/             # SVG icons
+│   └── images/            # Bitmap assets (bag, coins, gold bars, etc.)
 ├── design/
-│   ├── doc/               # PRD、视觉资产清单等设计文档
-│   └── img/               # 设计稿截图
+│   ├── doc/               # PRD, visual asset spec, and other design docs
+│   └── img/               # Design mockup screenshots
 ├── lib/
-│   ├── main.dart          # 应用入口
-│   ├── app.dart           # MaterialApp 配置、路由
-│   ├── config/            # 常量、设计令牌、路由、主题
-│   ├── models/            # 数据模型（AppPhase、BagState、SalaryConfig 等）
-│   ├── providers/         # Provider 状态管理（Config、Game、Animation）
-│   ├── repositories/      # 数据持久层（Salary、Settings、Stats）
-│   ├── services/          # 业务服务（音效、震动、通知、计时器、计算器等）
+│   ├── main.dart          # App entry point
+│   ├── app.dart           # MaterialApp config, routing
+│   ├── config/            # Constants, design tokens, routes, theme
+│   ├── models/            # Data models (AppPhase, BagState, SalaryConfig, etc.)
+│   ├── providers/         # Provider state management (Config, Game, Animation)
+│   ├── repositories/      # Data persistence layer (Salary, Settings, Stats)
+│   ├── services/          # Business services (audio, haptic, notification, timer, calculator, etc.)
 │   ├── ui/
-│   │   ├── animations/    # 动画队列与冲突处理
-│   │   ├── pages/         # 页面（Home、SalarySetup、Settings）
-│   │   └── widgets/       # 可复用组件（Bag、TopBar、ControlBar 等）
-│   └── utils/             # 工具函数（响应式适配等）
-├── test/                  # 单元测试与 Widget 测试
+│   │   ├── animations/    # Animation queue and conflict handling
+│   │   ├── pages/         # Pages (Home, SalarySetup, Settings)
+│   │   └── widgets/       # Reusable components (Bag, TopBar, ControlBar, etc.)
+│   └── utils/             # Utility functions (responsive sizing, etc.)
+├── test/                  # Unit tests and widget tests
 └── pubspec.yaml
 ```
 
-### 架构分层
+### Architecture Layers
 
 ```
 UI Layer (pages / widgets)
@@ -64,138 +64,138 @@ UI Layer (pages / widgets)
 
 ---
 
-## 环境要求
+## Requirements
 
 - **Flutter SDK** ≥ 3.12.0
 - **Dart SDK** ≥ 3.12.0
-- **Xcode**（iOS 开发）≥ 15.0
-- **Android Studio**（Android 开发）≥ Hedgehog
-- **CocoaPods**（iOS 依赖管理）
+- **Xcode** (iOS development) ≥ 15.0
+- **Android Studio** (Android development) ≥ Hedgehog
+- **CocoaPods** (iOS dependency management)
 
 ```bash
-# 验证环境
+# Verify environment
 flutter doctor
 ```
 
 ---
 
-## 本地开发
+## Local Development
 
-### 1. 克隆项目
+### 1. Clone
 
 ```bash
 git clone <repo-url>
 cd pocketjoy
 ```
 
-### 2. 安装依赖
+### 2. Install Dependencies
 
 ```bash
 flutter pub get
 ```
 
-### 3. 代码生成（Hive 类型适配器）
+### 3. Code Generation (Hive Type Adapters)
 
 ```bash
 flutter pub run build_runner build
 ```
 
-### 4. 静态分析
+### 4. Static Analysis
 
 ```bash
 flutter analyze
 ```
 
-目标：**0 error，0 warning**。
+Target: **0 errors, 0 warnings**.
 
-### 5. 运行测试
+### 5. Run Tests
 
 ```bash
 flutter test
 ```
 
-### 6. 启动应用
+### 6. Launch the App
 
 ```bash
-# 列出可用设备
+# List available devices
 flutter devices
 
-# iOS 模拟器
+# iOS Simulator
 flutter emulators --launch apple_ios_simulator
 flutter run
 
-# Android 模拟器
+# Android Emulator
 flutter emulators --launch <emulator_name>
 flutter run
 
-# macOS 桌面（部分功能受限，见下方说明）
+# macOS Desktop (some features limited — see notes below)
 flutter run -d macos
 
-# Chrome 网页（音效需先点击页面解锁 autoplay）
+# Chrome (audio requires user interaction to unlock autoplay)
 flutter run -d chrome
 ```
 
 ---
 
-## 平台注意事项
+## Platform Notes
 
-| 功能 | iOS 模拟器 | Android 模拟器 | macOS 桌面 | Chrome 网页 |
-|------|-----------|---------------|-----------|------------|
-| 音效播放 | ✅ | ✅ | ✅ | ⚠️ 需先点击页面解锁 autoplay |
-| 震动反馈 | ❌ 模拟器无震动硬件 | ❌ 模拟器无震动硬件 | ❌ | ❌ |
-| 本地通知 | ✅ | ✅ | ⚠️ 部分支持 | ❌ |
-| 安全存储 | ✅ | ✅ | ✅ | ⚠️ 仅 localStorage |
-| 竖屏锁定 | ✅ | ✅ | ❌ 不适用 | ❌ 不适用 |
+| Feature | iOS Sim | Android Emu | macOS | Chrome |
+|---------|---------|-------------|-------|--------|
+| Audio playback | ✅ | ✅ | ✅ | ⚠️ Requires user tap to unlock autoplay |
+| Haptic feedback | ❌ No hardware | ❌ No hardware | ❌ | ❌ |
+| Local notifications | ✅ | ✅ | ⚠️ Partial | ❌ |
+| Secure storage | ✅ | ✅ | ✅ | ⚠️ localStorage only |
+| Portrait lock | ✅ | ✅ | ❌ N/A | ❌ N/A |
 
-> **推荐**：音效和震动测试建议使用真机或 iOS 模拟器（iOS 模拟器支持系统音频播放）。
+> **Recommendation**: Test audio and haptics on a physical device, or use the iOS Simulator (which supports system audio playback).
 
 ---
 
-## 调试模式
+## Debug Mode
 
-在 `lib/providers/game_provider.dart` 顶部有两个调试开关：
+Two debug flags at the top of `lib/providers/game_provider.dart`:
 
 ```dart
-static const _debugFastDrop = true;   // true = 金币掉落用秒计（3秒一次）
-static const _debugDropSeconds = 3;   // debug 模式下的掉落间隔秒数
+static const _debugFastDrop = true;   // true = coin drops in seconds (every 3s)
+static const _debugDropSeconds = 3;   // drop interval in seconds (debug mode)
 ```
 
-- **开发调试**：`_debugFastDrop = true`，每 3 秒触发一次金币掉落，快速验证动画和音效
-- **生产发布**：`_debugFastDrop = false`，使用用户设置的随机间隔（分钟级）
+- **Development**: Set `_debugFastDrop = true` — a coin drops every 3 seconds for rapid animation and audio testing.
+- **Production**: Set `_debugFastDrop = false` — uses the user-configured random interval (in minutes).
 
 ---
 
-## 资产替换
+## Asset Replacement
 
-所有视觉和音效资产遵循**同名覆盖**策略，替换正式资产后无需修改代码。
+All visual and audio assets follow a **same-name override** strategy — replace production assets without modifying code.
 
-| 目录 | 内容 | 替换方式 |
-|------|------|----------|
-| `assets/audio/` | MP3 音效 | 同名覆盖，AudioService 自动引用 |
-| `assets/images/` | PNG/WebP 位图 | 同名覆盖 |
-| `assets/animations/` | Rive/Lottie | 同名覆盖，需同步更新引用代码 |
-| `assets/icons/` | SVG 图标 | 同名覆盖 |
+| Directory | Content | How to Replace |
+|-----------|---------|----------------|
+| `assets/audio/` | MP3 sound effects | Override with same filename; AudioService auto-picks it up |
+| `assets/images/` | PNG/WebP bitmaps | Override with same filename |
+| `assets/animations/` | Rive/Lottie | Override with same filename; update referencing code as needed |
+| `assets/icons/` | SVG icons | Override with same filename |
 
-音效文件命名规范：
+Audio file naming convention:
 
-| 场景 | 文件名 |
-|------|--------|
-| 金币掉落 | `coin-drop.mp3` |
-| 口袋接住 | `receive.mp3` |
-| 金条合成 | `gold_bar.mp3` |
-| 轻提示 | `prompt.mp3` |
+| Scene | Filename |
+|-------|----------|
+| Coin drop | `coin-drop.mp3` |
+| Bag catch | `receive.mp3` |
+| Gold bar synthesized | `gold_bar.mp3` |
+| Prompt chime | `prompt.mp3` |
 
 ---
 
-## 核心业务规则
+## Core Business Rules
 
-- **1000 金币 = 1 根金条**
-- **每分钟分薪** = 税后月薪 ÷ 当月工作天数 ÷ 8 ÷ 60
-- **本次掉落金币** = round(每分钟分薪 × 本次实际间隔分钟数)
-- **随机间隔**：首次在 [min, max] 内随机，后续按 ×3、×1/2 交替
-- **首页不展示真实金额或货币符号**
+- **1000 coins = 1 gold bar**
+- **Per-minute salary** = after-tax monthly salary ÷ workdays this month ÷ 8 ÷ 60
+- **Coins per drop** = round(per-minute salary × actual interval in minutes)
+- **Random interval**: First drop in [min, max]; subsequent values alternate ×3 and ×½
+- **Home screen never displays real currency amounts or symbols**
 
-### 应用状态机
+### App State Machine
 
 ```
 unset → running ⇄ paused
@@ -205,20 +205,20 @@ unset → running ⇄ paused
 
 ---
 
-## 设置项
+## Settings
 
-| 设置 | 存储位置 | 默认值 |
-|------|----------|--------|
-| 税后月薪 | flutter_secure_storage（加密） | 无（首次必填） |
-| 工作天数 | shared_preferences | 当月周一至周五天数 |
-| 随机间隔范围 | shared_preferences | 15–300 分钟 |
-| 音效开关 | shared_preferences | 开启 |
-| 震动开关 | shared_preferences | 开启 |
-| 通知开关 | shared_preferences | 开启 |
+| Setting | Storage | Default |
+|---------|---------|---------|
+| After-tax monthly salary | flutter_secure_storage (encrypted) | None (required on first launch) |
+| Workdays per month | shared_preferences | Mon–Fri count of current month |
+| Random interval range | shared_preferences | 15–300 minutes |
+| Sound toggle | shared_preferences | On |
+| Haptic toggle | shared_preferences | On |
+| Notification toggle | shared_preferences | On |
 
 ---
 
-## 构建与发布
+## Build & Release
 
 ```bash
 # Android APK
@@ -231,22 +231,22 @@ flutter build appbundle --release
 flutter build ios --release
 ```
 
-发布前确认：
+Pre-release checklist:
 - [ ] `_debugFastDrop = false`
-- [ ] `flutter analyze` 0 error 0 warning
-- [ ] `flutter test` 全部通过
-- [ ] 正式视觉资产已替换占位文件
-- [ ] App 图标和启动页已配置
+- [ ] `flutter analyze` — 0 errors, 0 warnings
+- [ ] `flutter test` — all passing
+- [ ] Production visual assets have replaced placeholders
+- [ ] App icon and splash screen configured
 
 ---
 
-## 相关文档
+## Related Docs
 
 - `design/doc/PocketJoy_App_V1.0产品需求文档_开发版.md` — PRD
-- `design/doc/PocketJoy_V1.0视觉资产交付清单.md` — 视觉与音效规格
+- `design/doc/PocketJoy_V1.0视觉资产交付清单.md` — Visual & audio spec
 
 ---
 
-## 许可证
+## License
 
 MIT
