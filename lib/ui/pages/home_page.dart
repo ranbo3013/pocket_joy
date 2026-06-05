@@ -126,10 +126,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    // Emotion text
-                    const EmotionTextWidget(),
-                    const SizedBox(height: AppSpacing.sm),
-
                     // Stats
                     const StatsBar(),
                     const SizedBox(height: AppSpacing.sm),
@@ -139,6 +135,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     const SizedBox(height: AppSpacing.md),
                   ],
                 ),
+              ),
+
+              // Emotion text — floating, doesn't affect layout
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 380, // above stats bar
+                child: EmotionTextWidget(),
               ),
 
               // Coin drop overlay

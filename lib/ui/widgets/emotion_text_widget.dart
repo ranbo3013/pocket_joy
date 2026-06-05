@@ -25,12 +25,13 @@ class _EmotionTextWidgetState extends State<EmotionTextWidget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2600), // 300 + 2000 + 300
+      duration: const Duration(milliseconds: 5000),
     );
+    // Fade in over 300ms, then hold at full opacity.
+    // The AnimationProvider controls when to hide the widget entirely.
     _fadeAnimation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 300),
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 2000),
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 300),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 4700),
     ]).animate(_controller);
   }
 

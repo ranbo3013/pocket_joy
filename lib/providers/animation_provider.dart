@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/bag_state.dart';
 import '../models/app_phase.dart';
@@ -21,6 +22,11 @@ class AnimationProvider extends ChangeNotifier {
 
   String? get emotionText => _emotionText;
   bool get emotionTextVisible => _emotionTextVisible;
+
+  // ─── Pending timers ────────────────────────────────────
+
+  Timer? _hideTextTimer;
+  Timer? _bagBreathingTimer;
 
   // ─── Coin drop animation ───────────────────────────────
 
@@ -62,8 +68,10 @@ class AnimationProvider extends ChangeNotifier {
   void triggerCoinDrop(int coins) {
     _currentDropCoins = coins;
     _isCoinDropping = true;
-    // Bag stays in its current state (breathing) during the fall
-    // — the impact bounce fires in onCoinDropComplete.
+
+    // Cancel any pending hide/breathe timers from previous drop
+    _hideTextTimer?.cancel();
+    _bagBreathingTimer?.cancel();
 
     // Pick emotion text
     final emotion = _emotionPool.pick(coins);
@@ -84,13 +92,13 @@ class AnimationProvider extends ChangeNotifier {
     notifyListeners();
 
     // After bounce finishes (~700ms for forward+reverse), return to breathing
-    Future.delayed(const Duration(milliseconds: 700), () {
+    _bagBreathingTimer = Timer(const Duration(milliseconds: 700), () {
       _bagState = BagState.breathing;
       notifyListeners();
     });
 
     // Auto-hide emotion text after 2s
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    _hideTextTimer = Timer(const Duration(milliseconds: 2000), () {
       _emotionTextVisible = false;
       notifyListeners();
     });
@@ -109,6 +117,8 @@ class AnimationProvider extends ChangeNotifier {
 
   /// Interrupt all animations for user action (pause/background).
   void interruptAll() {
+    _hideTextTimer?.cancel();
+    _bagBreathingTimer?.cancel();
     _isCoinDropping = false;
     _isGoldBarSynthesizing = false;
     _emotionTextVisible = false;
