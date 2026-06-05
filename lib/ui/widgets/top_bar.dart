@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../config/design_tokens.dart';
 import '../../config/routes.dart';
@@ -42,8 +43,15 @@ class TopBar extends StatelessWidget {
                   _PhaseChip(phase: game.phase),
                   const SizedBox(width: AppSpacing.sm),
                   IconButton(
-                    icon: const Icon(Icons.settings_outlined,
-                        color: AppColors.textSecondary),
+                    icon: SvgPicture.asset(
+                      'assets/icons/settings.svg',
+                      width: 24,
+                      height: 24,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.textSecondary,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                     onPressed: () {
                       HapticFeedback.lightImpact();
                       Navigator.of(context).pushNamed(AppRoutes.settings);

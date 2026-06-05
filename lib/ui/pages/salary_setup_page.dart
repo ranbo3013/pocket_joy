@@ -4,6 +4,7 @@ import '../../config/constants.dart';
 import '../../config/design_tokens.dart';
 import '../../config/routes.dart';
 import '../../providers/config_provider.dart';
+import '../../providers/game_provider.dart';
 import '../../models/bag_state.dart';
 import '../widgets/bag_widget.dart';
 
@@ -228,8 +229,12 @@ class _SalarySetupPageState extends State<SalarySetupPage> {
     setState(() => _isSaving = false);
 
     if (success) {
+      // Start the game now that salary is set
+      context.read<GameProvider>().start();
       // Navigate to home, replacing setup page
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('保存失败，请检查设备存储空间')),

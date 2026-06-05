@@ -55,10 +55,15 @@ class AnimationProvider extends ChangeNotifier {
 
   /// Trigger a coin drop animation sequence.
   /// Called by GameProvider._triggerDrop.
+  ///
+  /// The bag stays in breathing/idle while the coin falls.
+  /// The "receive" bounce happens when the coin actually lands
+  /// (see onCoinDropComplete), so the visual impact is synced.
   void triggerCoinDrop(int coins) {
     _currentDropCoins = coins;
     _isCoinDropping = true;
-    _bagState = BagState.receive;
+    // Bag stays in its current state (breathing) during the fall
+    // — the impact bounce fires in onCoinDropComplete.
 
     // Pick emotion text
     final emotion = _emotionPool.pick(coins);
@@ -70,11 +75,19 @@ class AnimationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Coin drop animation completed — return bag to breathing.
+  /// Coin drop animation completed — coin just hit the bag.
+  /// Trigger bag receive bounce + impact, then return to breathing.
   void onCoinDropComplete() {
     _isCoinDropping = false;
-    _bagState = BagState.breathing;
+    // NOW the coin lands — trigger the bag bounce
+    _bagState = BagState.receive;
     notifyListeners();
+
+    // After bounce finishes (~700ms for forward+reverse), return to breathing
+    Future.delayed(const Duration(milliseconds: 700), () {
+      _bagState = BagState.breathing;
+      notifyListeners();
+    });
 
     // Auto-hide emotion text after 2s
     Future.delayed(const Duration(milliseconds: 2000), () {

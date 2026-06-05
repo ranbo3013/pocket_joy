@@ -8,6 +8,7 @@ class SettingsRepository {
   static const _keyIntervalMax = 'interval_max';
   static const _keySoundEnabled = 'sound_enabled';
   static const _keyHapticEnabled = 'haptic_enabled';
+  static const _keyNotificationsEnabled = 'notifications_enabled';
   static const _keyIsPaused = 'is_paused';
   static const _keyIsOffWork = 'is_off_work';
   static const _keyLastActiveDate = 'last_active_date';
@@ -80,6 +81,20 @@ class SettingsRepository {
 
   Future<bool> setHapticEnabled(bool value) async {
     return _prefs.setBool(_keyHapticEnabled, value);
+  }
+
+  // ─── Notifications ──────────────────────────────────────
+
+  bool getNotificationsEnabled() {
+    try {
+      return _prefs.getBool(_keyNotificationsEnabled) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<bool> setNotificationsEnabled(bool value) async {
+    return _prefs.setBool(_keyNotificationsEnabled, value);
   }
 
   // ─── Phase flags ──────────────────────────────────────

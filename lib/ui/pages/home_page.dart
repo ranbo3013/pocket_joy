@@ -9,6 +9,7 @@ import '../widgets/bag_widget.dart';
 import '../widgets/coin_drop_overlay.dart';
 import '../widgets/control_bar.dart';
 import '../widgets/emotion_text_widget.dart';
+import '../widgets/gold_bar_celebration.dart';
 import '../widgets/stats_bar.dart';
 import '../widgets/top_bar.dart';
 
@@ -20,6 +21,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  // Track previous values to detect changes across rebuilds.
+  // -1 sentinel means "not yet initialised" — prevents false
+  // triggers on first build when stats are restored from disk.
+  int _prevTodayCoins = -1;
+  AppPhase _prevPhase = AppPhase.unset;
+
   @override
   void initState() {
     super.initState();
@@ -56,9 +63,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return Scaffold(
       body: Consumer2<GameProvider, AnimationProvider>(
         builder: (context, game, anim, _) {
+          // ── Bridge: GameProvider → AnimationProvider ────────
+
+          // Detect new coin drop
+          if (_prevTodayCoins >= 0 &&
+              game.todayCoins != _prevTodayCoins &&
+              game.phase == AppPhase.running) {
+            final delta = game.todayCoins - _prevTodayCoins;
+            if (delta > 0) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) anim.triggerCoinDrop(delta);
+              });
+            }
+          }
+          _prevTodayCoins = game.todayCoins;
+
+          // Detect gold bar synthesis
+          if (game.goldBarJustSynthesized && !anim.isGoldBarSynthesizing) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) anim.triggerGoldBarSynthesis();
+            });
+          }
+
+          // Sync bag state ONLY when phase actually changes
+          if (game.phase != _prevPhase) {
+            _prevPhase = game.phase;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) anim.onPhaseChanged(game.phase);
+            });
+          }
+
           // Show time rollback toast
           if (anim.showTimeRollbackToast) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('检测到系统时间异常，金币掉落已暂停。请校正系统时间后继续。'),
@@ -68,9 +106,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               anim.dismissTimeRollbackToast();
             });
           }
-
-          // Sync animation state with game phase
-          anim.onPhaseChanged(game.phase);
 
           return Stack(
             children: [
@@ -108,6 +143,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
               // Coin drop overlay
               const CoinDropOverlay(),
+
+              // Gold bar celebration particles
+              if (anim.isGoldBarSynthesizing)
+                const GoldBarCelebration(),
             ],
           );
         },
@@ -116,37 +155,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget _buildBagArea(GameProvider game, AnimationProvider anim) {
-    // During gold bar synthesis, show celebration
-    // TODO Phase 12: Add gold bar celebration overlay
-
     final isPaused = game.phase == AppPhase.paused;
+    final isOffWork = game.phase == AppPhase.offWork;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
       children: [
-        if (isPaused)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        // Bag — determines the layout size
+        BagWidget(state: anim.bagState),
+        // Floating text below the bag, doesn't affect bag position
+        if (isPaused || isOffWork)
+          Positioned(
+            top: 290, // just below the bag graphic
             child: Text(
-              '口袋休息中',
+              isPaused ? '口袋休息中' : '今天辛苦了 🌙',
               style: AppTextStyles.caption.copyWith(
                 color: AppColors.textSecondary,
                 fontSize: 16,
               ),
             ),
           ),
-        if (game.phase == AppPhase.offWork)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Text(
-              '今天辛苦了 🌙',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        const BagWidget(),
       ],
     );
   }

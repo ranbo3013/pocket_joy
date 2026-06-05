@@ -17,6 +17,9 @@ class _EmotionTextWidgetState extends State<EmotionTextWidget>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
+  // Track the last text to avoid restarting animation on every rebuild
+  String? _lastText;
+
   @override
   void initState() {
     super.initState();
@@ -41,13 +44,18 @@ class _EmotionTextWidgetState extends State<EmotionTextWidget>
   Widget build(BuildContext context) {
     return Consumer<AnimationProvider>(
       builder: (context, anim, _) {
-        if (anim.emotionTextVisible && anim.emotionText != null) {
-          // Restart animation when new text appears
-          _controller.forward(from: 0);
+        final hasText = anim.emotionTextVisible && anim.emotionText != null;
+
+        if (!hasText) {
+          _lastText = null;
+          _controller.value = 0;
+          return const SizedBox.shrink();
         }
 
-        if (!anim.emotionTextVisible && anim.emotionText == null) {
-          return const SizedBox.shrink();
+        // Only restart animation when the text content actually changes
+        if (anim.emotionText != _lastText) {
+          _lastText = anim.emotionText;
+          _controller.forward(from: 0);
         }
 
         return SizedBox(

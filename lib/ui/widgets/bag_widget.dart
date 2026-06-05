@@ -19,6 +19,8 @@ class _BagWidgetState extends State<BagWidget>
     with TickerProviderStateMixin {
   late AnimationController _breathController;
   late AnimationController _bounceController;
+  late AnimationController _impactController;
+  late Animation<double> _impactAnimation;
 
   @override
   void initState() {
@@ -30,6 +32,14 @@ class _BagWidgetState extends State<BagWidget>
     _bounceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
+    );
+    _impactController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _impactAnimation = CurvedAnimation(
+      parent: _impactController,
+      curve: Curves.easeOutCubic,
     );
 
     _applyState(widget.state);
@@ -61,6 +71,8 @@ class _BagWidgetState extends State<BagWidget>
         _bounceController.forward().then((_) {
           _bounceController.reverse();
         });
+        // Play impact ring: expand and fade
+        _impactController.forward(from: 0);
         break;
       case BagState.paused:
         _breathController.stop();
@@ -73,6 +85,7 @@ class _BagWidgetState extends State<BagWidget>
   void dispose() {
     _breathController.dispose();
     _bounceController.dispose();
+    _impactController.dispose();
     super.dispose();
   }
 
@@ -81,7 +94,11 @@ class _BagWidgetState extends State<BagWidget>
     final scale = widget.scale ?? 1.0;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([_breathController, _bounceController]),
+      animation: Listenable.merge([
+        _breathController,
+        _bounceController,
+        _impactController,
+      ]),
       builder: (context, child) {
         // Combine breath + bounce effects
         double breathScale = 1.0;
@@ -107,31 +124,103 @@ class _BagWidgetState extends State<BagWidget>
           }
         }
 
-        return Transform.scale(
-          scale: scale * breathScale,
-          child: Opacity(
-            opacity: opacity,
-            child: Transform(
-              transform: Matrix4.identity()..scale(1.0, bounceScaleY),
-              alignment: Alignment.center,
-              child: _buildBagGraphic(),
+        // Impact ring: expand and fade
+        final impactProgress = _impactAnimation.value;
+        final showImpact = widget.state == BagState.receive && impactProgress > 0;
+
+        return Stack(
+          clipBehavior: Clip.hardEdge,
+          alignment: Alignment.center,
+          children: [
+            // Impact ring behind the bag (clipped to bag bounds)
+            if (showImpact)
+              _buildImpactRing(impactProgress),
+
+            // Main bag graphic
+            Transform.scale(
+              scale: scale * breathScale,
+              child: Opacity(
+                opacity: opacity,
+                child: Transform(
+                  transform: Matrix4.identity()..scale(1.0, bounceScaleY),
+                  alignment: Alignment.center,
+                  child: _buildBagGraphic(),
+                ),
+              ),
             ),
-          ),
+          ],
         );
       },
     );
   }
 
-  /// Code-drawn bag placeholder.
-  /// Replaced by Rive/PNG asset in Phase 9.
+  /// Expanding golden ring that fades out on coin impact.
+  Widget _buildImpactRing(double progress) {
+    final ringSize = 60 + progress * 120; // expand from 60 to 180
+    final ringOpacity = (1.0 - progress).clamp(0.0, 1.0);
+    final ringWidth = (1.0 - progress) * 4; // thins as it expands
+
+    return Positioned(
+      top: 80, // near bag mouth
+      child: Opacity(
+        opacity: ringOpacity,
+        child: Container(
+          width: ringSize,
+          height: ringSize * 0.4,
+          decoration: BoxDecoration(
+            shape: BoxShape.rectangle,
+            borderRadius: BorderRadius.circular(ringSize * 0.2),
+            border: Border.all(
+              color: AppColors.goldGlow,
+              width: ringWidth,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.goldPrimary.withAlpha(80),
+                blurRadius: ringSize * 0.3,
+                spreadRadius: ringSize * 0.05,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Load the bag PNG asset for the current state.
+  /// Each visual state uses a dedicated image — no more
+  /// ColorFilter hacks for paused/receive.
   Widget _buildBagGraphic() {
+    final assetPath = switch (widget.state) {
+      BagState.receive => 'assets/images/bag_receive.png',
+      BagState.paused => 'assets/images/bag_paused.png',
+      BagState.idle || BagState.breathing => 'assets/images/bag_idle.png',
+    };
+
+    return Container(
+      width: 240,
+      height: 280,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Image.asset(
+        assetPath,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => _buildFallbackGraphic(),
+      ),
+    );
+  }
+
+  /// Fallback when asset image fails to load.
+  Widget _buildFallbackGraphic() {
     return Container(
       width: 200,
       height: 240,
       decoration: BoxDecoration(
         color: AppColors.bgSecondary,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.goldPrimary.withOpacity(0.4), width: 2),
+        border: Border.all(
+            color: AppColors.goldPrimary.withOpacity(0.4), width: 2),
         boxShadow: [
           BoxShadow(
             color: AppColors.goldGlow.withOpacity(0.15),
@@ -143,7 +232,6 @@ class _BagWidgetState extends State<BagWidget>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Bag opening (folded top)
           Container(
             width: 80,
             height: 12,
@@ -153,12 +241,8 @@ class _BagWidgetState extends State<BagWidget>
             ),
           ),
           const SizedBox(height: 4),
-          // Bag body hint
-          Icon(
-            Icons.shopping_bag_outlined,
-            size: 80,
-            color: AppColors.goldPrimary.withOpacity(0.3),
-          ),
+          Icon(Icons.shopping_bag_outlined,
+              size: 80, color: AppColors.goldPrimary.withOpacity(0.3)),
           const SizedBox(height: 8),
           Text(
             'PocketJoy',

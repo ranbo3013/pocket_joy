@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../config/design_tokens.dart';
 import '../../models/app_phase.dart';
@@ -28,7 +29,7 @@ class ControlBar extends StatelessWidget {
                 children: [
                   if (game.phase == AppPhase.running) ...[
                     _ControlButton(
-                      icon: Icons.pause_rounded,
+                      assetPath: 'assets/icons/pause.svg',
                       label: '暂停',
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -37,7 +38,7 @@ class ControlBar extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.xl),
                     _ControlButton(
-                      icon: Icons.logout_rounded,
+                      assetPath: 'assets/icons/off_work.svg',
                       label: '打卡下班',
                       onTap: () {
                         HapticFeedback.mediumImpact();
@@ -46,7 +47,7 @@ class ControlBar extends StatelessWidget {
                     ),
                   ] else if (game.phase == AppPhase.paused) ...[
                     _ControlButton(
-                      icon: Icons.play_arrow_rounded,
+                      assetPath: 'assets/icons/play.svg',
                       label: '继续',
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -55,7 +56,7 @@ class ControlBar extends StatelessWidget {
                     ),
                   ] else if (game.phase == AppPhase.offWork) ...[
                     _ControlButton(
-                      icon: Icons.refresh_rounded,
+                      assetPath: 'assets/icons/play.svg',
                       label: '重新开始',
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -71,9 +72,9 @@ class ControlBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _ToggleButton(
-                    icon: config.soundEnabled
-                        ? Icons.volume_up_outlined
-                        : Icons.volume_off_outlined,
+                    assetPath: config.soundEnabled
+                        ? 'assets/icons/sound_on.svg'
+                        : 'assets/icons/sound_off.svg',
                     label: '音效',
                     active: config.soundEnabled,
                     onTap: () {
@@ -83,9 +84,9 @@ class ControlBar extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.lg),
                   _ToggleButton(
-                    icon: config.hapticEnabled
-                        ? Icons.vibration_outlined
-                        : Icons.vibration_outlined,
+                    assetPath: config.hapticEnabled
+                        ? 'assets/icons/haptic_on.svg'
+                        : 'assets/icons/haptic_off.svg',
                     label: '震动',
                     active: config.hapticEnabled,
                     onTap: () {
@@ -104,12 +105,12 @@ class ControlBar extends StatelessWidget {
 }
 
 class _ControlButton extends StatelessWidget {
-  final IconData icon;
+  final String assetPath;
   final String label;
   final VoidCallback onTap;
 
   const _ControlButton({
-    required this.icon,
+    required this.assetPath,
     required this.label,
     required this.onTap,
   });
@@ -131,7 +132,15 @@ class _ControlButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.textPrimary, size: 28),
+            SvgPicture.asset(
+              assetPath,
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(
+                AppColors.textPrimary,
+                BlendMode.srcIn,
+              ),
+            ),
             const SizedBox(height: 2),
             Text(label, style: AppTextStyles.small),
           ],
@@ -142,13 +151,13 @@ class _ControlButton extends StatelessWidget {
 }
 
 class _ToggleButton extends StatelessWidget {
-  final IconData icon;
+  final String assetPath;
   final String label;
   final bool active;
   final VoidCallback onTap;
 
   const _ToggleButton({
-    required this.icon,
+    required this.assetPath,
     required this.label,
     required this.active,
     required this.onTap,
@@ -156,15 +165,20 @@ class _ToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = active ? AppColors.goldPrimary : AppColors.textMuted;
+
     return GestureDetector(
       onTap: onTap,
       child: Opacity(
         opacity: active ? 1.0 : 0.4,
         child: Column(
           children: [
-            Icon(icon,
-                color: active ? AppColors.goldPrimary : AppColors.textMuted,
-                size: 24),
+            SvgPicture.asset(
+              assetPath,
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
             const SizedBox(height: 2),
             Text(label, style: AppTextStyles.small),
           ],

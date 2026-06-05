@@ -22,6 +22,7 @@ class ConfigProvider extends ChangeNotifier {
   late int _intervalMax;
   late bool _soundEnabled;
   late bool _hapticEnabled;
+  late bool _notificationsEnabled;
 
   ConfigProvider({
     SalaryRepository? salaryRepo,
@@ -40,6 +41,7 @@ class ConfigProvider extends ChangeNotifier {
   int get intervalMax => _intervalMax;
   bool get soundEnabled => _soundEnabled;
   bool get hapticEnabled => _hapticEnabled;
+  bool get notificationsEnabled => _notificationsEnabled;
 
   SalaryConfig? get salaryConfig {
     if (_salaryAfterTax == null) return null;
@@ -73,6 +75,7 @@ class ConfigProvider extends ChangeNotifier {
     _intervalMax = _settingsRepo.getIntervalMax();
     _soundEnabled = _settingsRepo.getSoundEnabled();
     _hapticEnabled = _settingsRepo.getHapticEnabled();
+    _notificationsEnabled = _settingsRepo.getNotificationsEnabled();
 
     notifyListeners();
   }
@@ -126,6 +129,12 @@ class ConfigProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> toggleNotifications() async {
+    _notificationsEnabled = !_notificationsEnabled;
+    await _settingsRepo.setNotificationsEnabled(_notificationsEnabled);
+    notifyListeners();
+  }
+
   // ─── Clear All ───────────────────────────────────────
 
   Future<void> clearAllData() async {
@@ -139,6 +148,7 @@ class ConfigProvider extends ChangeNotifier {
     _intervalMax = defaultIntervalMax;
     _soundEnabled = true;
     _hapticEnabled = true;
+    _notificationsEnabled = true;
 
     notifyListeners();
   }

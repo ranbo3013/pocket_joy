@@ -59,6 +59,11 @@ class GameProvider extends ChangeNotifier {
   Timer? _dropTimer;
   Timer? _persistTimer;
 
+  /// Debug: when true, drop interval uses seconds instead of minutes.
+  /// Set to false for production.
+  static const _debugFastDrop = true;
+  static const _debugDropSeconds = 3;
+
   // ─── Flag: did we just trigger a gold bar synthesis? ──
   bool _goldBarJustSynthesized = false;
   bool get goldBarJustSynthesized => _goldBarJustSynthesized;
@@ -84,6 +89,11 @@ class GameProvider extends ChangeNotifier {
         _hapticService = hapticService ?? HapticService(),
         _notificationService = notificationService ?? NotificationService();
 
+  // ─── Service getters ────────────────────────────────────
+
+  AudioService get audioService => _audioService;
+  NotificationService get notificationService => _notificationService;
+
   // ─── Initialize (PRD §8.3) ─────────────────────────────
 
   Future<void> initialize() async {
@@ -104,6 +114,12 @@ class GameProvider extends ChangeNotifier {
     // Init notification & audio services
     await _notificationService.init();
     await _audioService.init();
+
+    // Sync service settings from config
+    _syncServiceSettings();
+
+    // Listen for config changes to keep services in sync
+    _config.addListener(_syncServiceSettings);
 
     if (!_config.isSalarySet) {
       _phase = AppPhase.unset;
@@ -260,7 +276,12 @@ class GameProvider extends ChangeNotifier {
     final interval = _nextIntervalMinutes;
     if (interval == null) return;
 
-    _dropTimer = Timer(Duration(minutes: interval), _onDropIntervalElapsed);
+    _dropTimer = Timer(
+      _debugFastDrop
+          ? Duration(seconds: _debugDropSeconds)
+          : Duration(minutes: interval),
+      _onDropIntervalElapsed,
+    );
   }
 
   void _onDropIntervalElapsed() {
@@ -292,13 +313,17 @@ class GameProvider extends ChangeNotifier {
     }
 
     // Audio + Haptic
+    // Always play coin drop sound first
+    _audioService.playCoinDrop();
+    _hapticService.lightImpact();
+
     if (_goldBarJustSynthesized) {
-      _audioService.playGoldBar();
-      _hapticService.mediumImpact();
+      // Gold bar sound follows after coin drop with a short delay
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _audioService.playGoldBar();
+        _hapticService.mediumImpact();
+      });
       _notificationService.checkGoldBarMilestone(newBars);
-    } else {
-      _audioService.playCoinDrop();
-      _hapticService.lightImpact();
     }
 
     // Check milestone notifications
@@ -406,8 +431,17 @@ class GameProvider extends ChangeNotifier {
     return p1[0] != p2[0] || p1[1] != p2[1];
   }
 
+  // ─── Service settings sync ──────────────────────────────
+
+  void _syncServiceSettings() {
+    _audioService.setEnabled(_config.soundEnabled);
+    _hapticService.setEnabled(_config.hapticEnabled);
+    _notificationService.setEnabled(_config.notificationsEnabled);
+  }
+
   @override
   void dispose() {
+    _config.removeListener(_syncServiceSettings);
     _workTimer.dispose();
     _dropTimer?.cancel();
     _persistTimer?.cancel();

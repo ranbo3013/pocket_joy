@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'app.dart';
 import 'providers/config_provider.dart';
 import 'providers/game_provider.dart';
@@ -18,12 +19,23 @@ void main() async {
   // Initialize Hive for stats storage
   await Hive.initFlutter();
 
+  // Initialize timezone database (required by flutter_local_notifications
+  // for zonedSchedule — used by pause reminder).
+  tz_data.initializeTimeZones();
+
   // Initialize providers
   final configProvider = ConfigProvider();
   await configProvider.load();
 
   final gameProvider = GameProvider(configProvider);
   await gameProvider.initialize();
+
+  // Mark notification service timezone as ready after init
+  gameProvider.notificationService.markTimezoneReady();
+
+  // Request notification permissions on first launch
+  // (safe to call — iOS shows system dialog, Android 13+ shows permission)
+  await gameProvider.notificationService.requestPermission();
 
   final animationProvider = AnimationProvider(gameProvider);
 

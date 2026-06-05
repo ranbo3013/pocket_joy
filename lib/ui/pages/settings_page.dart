@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../config/constants.dart';
 import '../../config/design_tokens.dart';
@@ -20,7 +21,15 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         title: const Text('设置'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: SvgPicture.asset(
+            'assets/icons/back.svg',
+            width: 20,
+            height: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textSecondary,
+              BlendMode.srcIn,
+            ),
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -103,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: '音效',
                     trailing: Switch(
                       value: config.soundEnabled,
-                      activeColor: AppColors.goldPrimary,
+                      activeThumbColor: AppColors.goldPrimary,
                       onChanged: (_) => config.toggleSound(),
                     ),
                   ),
@@ -111,18 +120,17 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: '震动',
                     trailing: Switch(
                       value: config.hapticEnabled,
-                      activeColor: AppColors.goldPrimary,
+                      activeThumbColor: AppColors.goldPrimary,
                       onChanged: (_) => config.toggleHaptic(),
                     ),
                   ),
                   _SettingsTile(
                     title: '通知',
-                    subtitle: '通知权限',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.textMuted),
-                    onTap: () {
-                      // TODO Phase 11: Open system notification settings
-                    },
+                    trailing: Switch(
+                      value: config.notificationsEnabled,
+                      activeThumbColor: AppColors.goldPrimary,
+                      onChanged: (_) => config.toggleNotifications(),
+                    ),
                   ),
                   const Divider(
                       color: AppColors.textMuted, height: 1, indent: AppSpacing.lg, endIndent: AppSpacing.lg),
@@ -132,8 +140,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   _SettingsTile(
                     title: '清除本地数据',
                     subtitle: '清除后回到初始化页面',
-                    trailing: const Icon(Icons.delete_outline,
-                        color: AppColors.danger),
+                    trailing: SvgPicture.asset(
+                      'assets/icons/trash.svg',
+                      width: 24,
+                      height: 24,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.danger,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                     titleColor: AppColors.danger,
                     onTap: () => _showClearDialog(context, config),
                   ),
