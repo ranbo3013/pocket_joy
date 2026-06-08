@@ -4,10 +4,13 @@ import '../../config/design_tokens.dart';
 import '../../models/app_phase.dart';
 import '../../providers/animation_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../services/alarm_service.dart';
+import '../widgets/alarm_dialog.dart';
 import '../widgets/background_glow.dart';
 import '../widgets/bag_widget.dart';
 import '../widgets/coin_drop_overlay.dart';
 import '../widgets/control_bar.dart';
+import '../widgets/daily_goal_ring.dart';
 import '../widgets/emotion_text_widget.dart';
 import '../widgets/gold_bar_celebration.dart';
 import '../widgets/stats_bar.dart';
@@ -26,6 +29,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // triggers on first build when stats are restored from disk.
   int _prevTodayCoins = -1;
   AppPhase _prevPhase = AppPhase.unset;
+  bool _dailyGoalCelebrated = false;
 
   @override
   void initState() {
@@ -85,6 +89,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             });
           }
 
+          // Detect daily goal reached → trigger celebrate
+          if (game.dailyGoal.isEnabled &&
+              game.dailyGoal.todayReached &&
+              !_dailyGoalCelebrated) {
+            _dailyGoalCelebrated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) anim.triggerCelebrate();
+            });
+          }
+          // Reset celebrated flag when new day resets the goal
+          if (!game.dailyGoal.todayReached) {
+            _dailyGoalCelebrated = false;
+          }
+
           // Sync bag state ONLY when phase actually changes
           if (game.phase != _prevPhase) {
             _prevPhase = game.phase;
@@ -113,27 +131,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               const BackgroundGlow(),
 
               // Main content
-              SafeArea(
-                child: Column(
-                  children: [
-                    const TopBar(),
-                    const SizedBox(height: AppSpacing.sm),
+              _AlarmListener(
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      const TopBar(),
+                      const SizedBox(height: AppSpacing.sm),
 
-                    // Bag area
-                    Expanded(
-                      child: Center(
-                        child: _buildBagArea(game, anim),
+                      // Bag area
+                      Expanded(
+                        child: Center(
+                          child: _buildBagArea(game, anim),
+                        ),
                       ),
-                    ),
 
-                    // Stats
-                    const StatsBar(),
-                    const SizedBox(height: AppSpacing.sm),
+                      // Stats
+                      const StatsBar(),
+                      const SizedBox(height: AppSpacing.sm),
 
-                    // Controls
-                    const ControlBar(),
-                    const SizedBox(height: AppSpacing.md),
-                  ],
+                      // Controls
+                      const ControlBar(),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                  ),
                 ),
               ),
 
@@ -162,25 +182,120 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final isPaused = game.phase == AppPhase.paused;
     final isOffWork = game.phase == AppPhase.offWork;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Bag — determines the layout size
-        BagWidget(state: anim.bagState),
-        // Floating text below the bag, doesn't affect bag position
-        if (isPaused || isOffWork)
-          Positioned(
-            top: 290, // just below the bag graphic
-            child: Text(
-              isPaused ? '口袋休息中' : '今天辛苦了 🌙',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: 16,
+        DailyGoalRing(goal: game.dailyGoal, currentCoins: game.todayCoins),
+        const SizedBox(height: AppSpacing.sm),
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Bag — determines the layout size
+            BagWidget(state: anim.bagState),
+            // Floating text below the bag, doesn't affect bag position
+            if (isPaused || isOffWork)
+              Positioned(
+                top: 290, // just below the bag graphic
+                child: Text(
+                  isPaused ? '口袋休息中' : '今天辛苦了 🌙',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 16,
+                  ),
+                ),
               ),
-            ),
-          ),
+          ],
+        ),
       ],
     );
   }
+}
+
+/// Listens to [AlarmService] callbacks and shows the appropriate
+/// [AlarmDialog] when an alarm fires.
+class _AlarmListener extends StatefulWidget {
+  final Widget child;
+  const _AlarmListener({required this.child});
+
+  @override
+  _AlarmListenerState createState() => _AlarmListenerState();
+}
+
+class _AlarmListenerState extends State<_AlarmListener> {
+  bool _callbacksSet = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _callbacksSet) return;
+      final alarm = context.read<AlarmService>();
+      final game = context.read<GameProvider>();
+
+      alarm.onWorkStartTriggered = () {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlarmDialog.workStart(onStart: () => game.start()),
+        );
+      };
+
+      alarm.onBreakTriggered = () {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlarmDialog.breakReminder(
+            minutes: alarm.config.breakIntervalMinutes,
+            onBreak: () {
+              game.pause();
+              alarm.onBreakStarted();
+            },
+            onSnooze: () {},
+          ),
+        );
+      };
+
+      alarm.onEndOfWorkdayTriggered = () {
+        if (!mounted) return;
+        final summary = '今日获得 ${game.todayCoins} 金币';
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlarmDialog.endOfWorkday(
+            summary: summary,
+            onClockOut: () => game.clockOut(),
+          ),
+        );
+      };
+
+      alarm.onOvertimeTriggered = () {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlarmDialog.overtime(onDismiss: () {}),
+        );
+      };
+
+      alarm.onCustomAlarmTriggered = (a) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlarmDialog.custom(
+            alarmTitle: a.title,
+            onDismiss: () {},
+          ),
+        );
+      };
+
+      _callbacksSet = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

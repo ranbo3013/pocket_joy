@@ -61,6 +61,16 @@ class GameProvider extends ChangeNotifier {
   List<Achievement> get achievements => _achievements;
   Map<String, CalendarDay> get calendarDays => _calendarDays;
 
+  /// Set a daily coin goal target. Pass 0 to disable.
+  void setDailyGoalTarget(int coins) {
+    _dailyGoal = _dailyGoal.copyWith(
+      targetCoins: coins,
+      todayReached: false,
+    );
+    _statsRepo.setDailyGoal(_dailyGoal);
+    notifyListeners();
+  }
+
   // ─── Interval state (in-memory only) ───────────────────
 
   int? _nextIntervalMinutes;
@@ -108,6 +118,7 @@ class GameProvider extends ChangeNotifier {
   // ─── Service getters ────────────────────────────────────
 
   AudioService get audioService => _audioService;
+  HapticService get hapticService => _hapticService;
   NotificationService get notificationService => _notificationService;
 
   // ─── Initialize (PRD §8.3) ─────────────────────────────

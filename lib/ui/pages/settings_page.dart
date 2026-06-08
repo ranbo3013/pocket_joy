@@ -6,6 +6,8 @@ import '../../config/design_tokens.dart';
 import '../../config/routes.dart';
 import '../../providers/config_provider.dart';
 import '../../providers/game_provider.dart';
+import 'achievement_page.dart';
+import 'alarm_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -33,8 +35,8 @@ class _SettingsPageState extends State<SettingsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Consumer<ConfigProvider>(
-        builder: (context, config, _) {
+      body: Consumer2<ConfigProvider, GameProvider>(
+        builder: (context, config, game, _) {
           return SafeArea(
             child: SingleChildScrollView(
               child: Column(
@@ -151,6 +153,49 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     titleColor: AppColors.danger,
                     onTap: () => _showClearDialog(context, config),
+                  ),
+                  const Divider(
+                      color: AppColors.textMuted, height: 1, indent: AppSpacing.lg, endIndent: AppSpacing.lg),
+
+                  // ─── V2.0: 闹钟与提醒 ──────────────────────
+                  _SectionHeader(title: '闹钟与提醒'),
+                  _SettingsTile(
+                    title: '闹钟设置',
+                    subtitle: '上班/休息/下班/自定义闹钟',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.textMuted),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AlarmSettingsPage(),
+                      ),
+                    ),
+                  ),
+                  const Divider(
+                      color: AppColors.textMuted, height: 1, indent: AppSpacing.lg, endIndent: AppSpacing.lg),
+
+                  // ─── V2.0: 成就与目标 ──────────────────────
+                  _SectionHeader(title: '成就与目标'),
+                  _SettingsTile(
+                    title: '我的成就',
+                    subtitle: '徽章与工作日历',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.textMuted),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AchievementPage(),
+                      ),
+                    ),
+                  ),
+                  _SettingsTile(
+                    title: '每日金币目标',
+                    subtitle: game.dailyGoal.isEnabled
+                        ? '${game.dailyGoal.targetCoins} 金币'
+                        : '未设置',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.textMuted),
+                    onTap: () => _showDailyGoalDialog(context),
                   ),
                   const Divider(
                       color: AppColors.textMuted, height: 1, indent: AppSpacing.lg, endIndent: AppSpacing.lg),
@@ -292,6 +337,51 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         );
       },
+    );
+  }
+
+  void _showDailyGoalDialog(BuildContext context) {
+    final game = context.read<GameProvider>();
+    final controller = TextEditingController(
+      text: game.dailyGoal.isEnabled ? '${game.dailyGoal.targetCoins}' : '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('每日金币目标'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            hintText: '输入目标金币数，0 = 不设目标',
+          ),
+        ),
+        actions: [
+          if (game.dailyGoal.isEnabled)
+            TextButton(
+              onPressed: () {
+                game.setDailyGoalTarget(0);
+                Navigator.pop(ctx);
+              },
+              child: const Text('清除'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final val = int.tryParse(controller.text);
+              if (val != null && val > 0) {
+                game.setDailyGoalTarget(val);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
     );
   }
 }
