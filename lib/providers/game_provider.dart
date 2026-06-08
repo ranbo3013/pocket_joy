@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
+import '../models/achievement.dart';
 import '../models/app_phase.dart';
 import '../repositories/settings_repository.dart';
 import '../repositories/stats_repository.dart';
@@ -47,6 +48,18 @@ class GameProvider extends ChangeNotifier {
   int get todayRemainingCoins => _todayCoins % goldBarThreshold;
   int get monthGoldBars => _monthCoins ~/ goldBarThreshold;
   int get monthRemainingCoins => _monthCoins % goldBarThreshold;
+
+  // ─── V2.0: Streak / Goal / Achievements / Calendar ─────
+
+  StreakRecord _streak = StreakRecord();
+  DailyGoal _dailyGoal = DailyGoal();
+  List<Achievement> _achievements = allAchievements;
+  Map<String, CalendarDay> _calendarDays = {};
+
+  StreakRecord get streak => _streak;
+  DailyGoal get dailyGoal => _dailyGoal;
+  List<Achievement> get achievements => _achievements;
+  Map<String, CalendarDay> get calendarDays => _calendarDays;
 
   // ─── Interval state (in-memory only) ───────────────────
 
@@ -134,6 +147,11 @@ class GameProvider extends ChangeNotifier {
     _todayCoins = _statsRepo.getTodayCoins();
     _monthCoins = _statsRepo.getMonthCoins();
     _todayWorkSeconds = _statsRepo.getTodayWorkSeconds();
+
+    _streak = _statsRepo.getStreak();
+    _dailyGoal = _statsRepo.getDailyGoal();
+    _achievements = _statsRepo.getAchievements();
+    _calendarDays = _statsRepo.getCalendar();
 
     // Check cross-day / cross-month
     final today = _todayString();
@@ -348,9 +366,22 @@ class GameProvider extends ChangeNotifier {
     _goldBarJustSynthesized = false;
 
     final oldMonthCoins = _monthCoins;
+    final wasZero = _todayCoins == 0;
 
     _todayCoins += coins;
     _monthCoins += coins;
+
+    // Add streak bonus (first drop of the day gets the bonus)
+    if (_streak.streakBonusPerDay > 0 && wasZero) {
+      _todayCoins += _streak.streakBonusPerDay;
+      _monthCoins += _streak.streakBonusPerDay;
+    }
+
+    // Check daily goal
+    if (_dailyGoal.isEnabled && !_dailyGoal.todayReached && _todayCoins >= _dailyGoal.targetCoins) {
+      _dailyGoal = _dailyGoal.copyWith(todayReached: true);
+      _statsRepo.setDailyGoal(_dailyGoal);
+    }
 
     // Check gold bar synthesis
     final oldBars = oldMonthCoins ~/ goldBarThreshold;
@@ -358,6 +389,10 @@ class GameProvider extends ChangeNotifier {
     if (newBars > oldBars) {
       _goldBarJustSynthesized = true;
     }
+
+    // Check gold bar achievements
+    if (_monthCoins ~/ goldBarThreshold >= 10) _unlockAchievement('gold_digger');
+    if ((_monthCoins + _statsRepo.getLastMonthCoins()) ~/ goldBarThreshold >= 50) _unlockAchievement('vault');
 
     // Audio + Haptic
     // Always play coin drop sound first
@@ -401,12 +436,75 @@ class GameProvider extends ChangeNotifier {
     _todayWorkSeconds = seconds;
     _dateObserver.check();
 
+    // Update streak: mark today as active
+    final today = _todayString();
+    if (_streak.lastActiveDate != today) {
+      _updateStreak(today);
+    }
+
     // Check end-of-workday notification
     if (_todayWorkSeconds >= 8 * 3600) {
       _notificationService.scheduleEndOfWorkdayReminder();
     }
 
     notifyListeners();
+  }
+
+  // ─── Streak management ─────────────────────────────────
+
+  void _updateStreak(String today) {
+    final lastDate = _streak.lastActiveDate;
+    if (lastDate.isEmpty) {
+      _streak = _streak.copyWith(currentStreak: 1);
+    } else {
+      final last = DateTime.tryParse(lastDate);
+      final curr = DateTime.tryParse(today);
+      if (last != null && curr != null) {
+        final diff = curr.difference(last).inDays;
+        if (diff == 1) {
+          _streak = _streak.copyWith(currentStreak: _streak.currentStreak + 1);
+        } else {
+          // Reset unless only weekends were skipped
+          bool onlyWeekendGap = true;
+          for (var d = last.add(const Duration(days: 1));
+               d.isBefore(curr);
+               d = d.add(const Duration(days: 1))) {
+            if (d.weekday != DateTime.saturday && d.weekday != DateTime.sunday) {
+              onlyWeekendGap = false;
+              break;
+            }
+          }
+          _streak = _streak.copyWith(
+            currentStreak: onlyWeekendGap ? _streak.currentStreak + 1 : 1,
+          );
+        }
+      }
+    }
+    if (_streak.currentStreak > _streak.longestStreak) {
+      _streak = _streak.copyWith(longestStreak: _streak.currentStreak);
+    }
+    _streak = _streak.copyWith(
+      lastActiveDate: today,
+      streakBonusPerDay: StreakRecord.bonusForStreak(_streak.currentStreak),
+    );
+    _checkStreakAchievements();
+    _statsRepo.setStreak(_streak);
+  }
+
+  // ─── Achievement checks ────────────────────────────────
+
+  void _checkStreakAchievements() {
+    final count = _streak.currentStreak;
+    if (count >= 7) _unlockAchievement('week_streak');
+    if (count >= 20) _unlockAchievement('full_attendance');
+    if (count >= 50) _unlockAchievement('iron_man');
+  }
+
+  void _unlockAchievement(String id) {
+    final idx = _achievements.indexWhere((a) => a.id == id);
+    if (idx == -1 || _achievements[idx].isUnlocked) return;
+    _achievements[idx] = _achievements[idx].unlock();
+    _statsRepo.setAchievements(_achievements);
   }
 
   // ─── Periodic persist ──────────────────────────────────
@@ -422,6 +520,14 @@ class GameProvider extends ChangeNotifier {
     _statsRepo.setTodayCoins(_todayCoins);
     _statsRepo.setMonthCoins(_monthCoins);
     _statsRepo.setTodayWorkSeconds(_todayWorkSeconds);
+
+    final today = _todayString();
+    _statsRepo.setCalendarDay(CalendarDay(
+      date: today,
+      coins: _todayCoins,
+      workSeconds: _todayWorkSeconds,
+      goldBars: _todayCoins ~/ goldBarThreshold,
+    ));
   }
 
   // ─── Cross-day / month handlers ────────────────────────
@@ -430,6 +536,8 @@ class GameProvider extends ChangeNotifier {
     _statsRepo.setYesterdayCoins(_todayCoins);
     _todayCoins = 0;
     _todayWorkSeconds = 0;
+    _dailyGoal = _dailyGoal.copyWith(todayReached: false);
+    _statsRepo.setDailyGoal(_dailyGoal);
     _workTimer.reset();
     if (_phase == AppPhase.running) {
       _workTimer.start();
