@@ -25,10 +25,10 @@ class ConfigProvider extends ChangeNotifier {
   late bool _notificationsEnabled;
 
   ConfigProvider({
+    required StatsRepository statsRepo,
     SalaryRepository? salaryRepo,
-    StatsRepository? statsRepo,
   })  : _salaryRepo = salaryRepo ?? SalaryRepository(),
-        _statsRepo = statsRepo ?? StatsRepository();
+        _statsRepo = statsRepo;
 
   // ─── Getters ────────────────────────────────────────────
 

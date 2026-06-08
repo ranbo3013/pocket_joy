@@ -75,7 +75,7 @@ class GameProvider extends ChangeNotifier {
 
   GameProvider(
     this._config, {
-    StatsRepository? statsRepo,
+    required StatsRepository statsRepo,
     CoinCalculator? calculator,
     IntervalManager? intervalManager,
     WorkTimer? workTimer,
@@ -83,7 +83,7 @@ class GameProvider extends ChangeNotifier {
     AudioService? audioService,
     HapticService? hapticService,
     NotificationService? notificationService,
-  })  : _statsRepo = statsRepo ?? StatsRepository(),
+  })  : _statsRepo = statsRepo,
         _calculator = calculator ?? const CoinCalculator(),
         _intervalManager = intervalManager ?? IntervalManager(),
         _workTimer = workTimer ?? WorkTimer(),

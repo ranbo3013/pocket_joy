@@ -7,6 +7,7 @@ import 'app.dart';
 import 'providers/config_provider.dart';
 import 'providers/game_provider.dart';
 import 'providers/animation_provider.dart';
+import 'repositories/stats_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +24,14 @@ void main() async {
   // for zonedSchedule — used by pause reminder).
   tz_data.initializeTimeZones();
 
+  // Initialize StatsRepository (SharedPreferences-based persistence)
+  final statsRepo = await StatsRepository.create();
+
   // Initialize providers
-  final configProvider = ConfigProvider();
+  final configProvider = ConfigProvider(statsRepo: statsRepo);
   await configProvider.load();
 
-  final gameProvider = GameProvider(configProvider);
+  final gameProvider = GameProvider(configProvider, statsRepo: statsRepo);
   await gameProvider.initialize();
 
   // Mark notification service timezone as ready after init
