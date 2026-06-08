@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/design_tokens.dart';
 import '../../providers/game_provider.dart';
+import 'streak_fire.dart';
 
 /// Bottom stats bar: today coins, month gold bars, work time.
 class StatsBar extends StatelessWidget {
@@ -24,6 +25,7 @@ class StatsBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
+              StreakFire(streak: game.streak.currentStreak),
               _CoinStatItem(
                 value: '${game.todayCoins}',
                 label: '今日金币',
