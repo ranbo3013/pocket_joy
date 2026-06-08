@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+.claude/worktrees/agent-a2facad66cbd778e3/
+.claude/worktrees/agent-a60618e26a3d10456/
+.claude/worktrees/agent-ab70ad29b179b8e65/
+.claude/worktrees/agent-ae95399503421beba/
+docs/superpowers/plans/2026-06-08-v2-implementation-plan.md
