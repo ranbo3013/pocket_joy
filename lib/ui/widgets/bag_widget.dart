@@ -78,6 +78,16 @@ class _BagWidgetState extends State<BagWidget>
         _breathController.stop();
         _bounceController.stop();
         break;
+      case BagState.celebrate:
+        // Triple bounce: forward → reverse → forward → reverse
+        _bounceController.forward().then((_) {
+          _bounceController.reverse().then((_) {
+            _bounceController.forward().then((_) {
+              _bounceController.reverse();
+            });
+          });
+        });
+        break;
     }
   }
 
@@ -115,7 +125,7 @@ class _BagWidgetState extends State<BagWidget>
 
         // Bounce: compress vertically
         double bounceScaleY = 1.0;
-        if (widget.state == BagState.receive && _bounceController.isAnimating) {
+        if ((widget.state == BagState.receive || widget.state == BagState.celebrate) && _bounceController.isAnimating) {
           // Spring-like: compress at forward peak, normal at rest
           if (_bounceController.status == AnimationStatus.forward) {
             bounceScaleY = 1.0 - 0.06 * _bounceController.value;
@@ -194,7 +204,8 @@ class _BagWidgetState extends State<BagWidget>
     final assetPath = switch (widget.state) {
       BagState.receive => 'assets/images/bag_receive.png',
       BagState.paused => 'assets/images/bag_paused.png',
-      BagState.idle || BagState.breathing => 'assets/images/bag_idle.png',
+      BagState.celebrate || BagState.idle || BagState.breathing =>
+        'assets/images/bag_idle.png',
     };
 
     return Container(

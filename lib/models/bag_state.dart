@@ -12,4 +12,7 @@ enum BagState {
 
   /// Dimmed, minimal animation — paused state
   paused,
+
+  /// Triple-bounce celebration — daily goal reached or gold bar milestone
+  celebrate,
 }

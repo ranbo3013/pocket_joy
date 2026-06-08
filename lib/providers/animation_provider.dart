@@ -126,6 +126,17 @@ class AnimationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Trigger celebrate animation (triple bounce).
+  /// Auto-returns to breathing after ~1200ms.
+  void triggerCelebrate() {
+    _bagState = BagState.celebrate;
+    notifyListeners();
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      _bagState = BagState.breathing;
+      notifyListeners();
+    });
+  }
+
   /// Show time rollback toast once.
   void triggerTimeRollbackToast() {
     _timeRollbackToastVisible = true;
@@ -144,6 +155,7 @@ class AnimationProvider extends ChangeNotifier {
         _bagState = BagState.idle;
         break;
       case AppPhase.running:
+        if (_bagState == BagState.celebrate) break; // don't interrupt celebration
         _bagState = _isCoinDropping ? BagState.receive : BagState.breathing;
         break;
       case AppPhase.paused:
