@@ -33,6 +33,15 @@ const _workdayChannelId = 'pocketjoy_workday';
 const _workdayChannelName = '下班提醒';
 const _workdayChannelDesc = '完成一天工作后的温馨提醒';
 
+const _alarmWorkStartId = 2001;
+const _alarmBreakId = 2002;
+const _alarmEndOfWorkdayId = 2003;
+const _alarmCustomBaseId = 3000;
+
+const _alarmChannelId = 'pocketjoy_alarm';
+const _alarmChannelName = '闹钟提醒';
+const _alarmChannelDesc = '上班、休息、下班及自定义闹钟提醒';
+
 // ─── Top-level callback for terminated app notification tap ─
 
 /// Called by the OS when the user taps a notification while
@@ -128,6 +137,16 @@ class NotificationService {
         _workdayChannelName,
         description: _workdayChannelDesc,
         importance: Importance.defaultImportance,
+      ),
+    );
+
+    await androidPlugin.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _alarmChannelId,
+        _alarmChannelName,
+        description: _alarmChannelDesc,
+        importance: Importance.high,
+        enableVibration: true,
       ),
     );
   }
@@ -343,6 +362,75 @@ class NotificationService {
     if (!_initialized) return;
     try {
       await _plugin.cancelAll();
+    } catch (_) {}
+  }
+
+  // ─── Alarm Notifications ──────────────────────────────────
+
+  /// Schedule a one-time alarm notification at a specific [scheduledDate].
+  Future<int> scheduleAlarm({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+  }) async {
+    if (!_initialized) return id;
+    try {
+      await _plugin.zonedSchedule(
+        id, title, body,
+        tz.TZDateTime.from(scheduledDate, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _alarmChannelId, _alarmChannelName,
+            channelDescription: _alarmChannelDesc,
+            importance: Importance.high, priority: Priority.high,
+            enableVibration: true, fullScreenIntent: true, showWhen: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true, presentBadge: true, presentSound: false,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (_) {}
+    return id;
+  }
+
+  /// Show an immediate alarm notification (for when app is in foreground).
+  Future<void> showAlarmNow({
+    required int id, required String title, required String body,
+  }) async {
+    if (!_initialized) return;
+    try {
+      await _plugin.show(id, title, body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _alarmChannelId, _alarmChannelName,
+            channelDescription: _alarmChannelDesc,
+            importance: Importance.high, priority: Priority.high, enableVibration: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true, presentBadge: true, presentSound: false,
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  /// Cancel a specific alarm by [id].
+  Future<void> cancelAlarm(int id) async {
+    if (!_initialized) return;
+    try { await _plugin.cancel(id); } catch (_) {}
+  }
+
+  /// Cancel all alarm-range notifications.
+  Future<void> cancelAllAlarms() async {
+    if (!_initialized) return;
+    try {
+      for (int i = _alarmWorkStartId; i < _alarmCustomBaseId + 100; i++) {
+        await _plugin.cancel(i);
+      }
     } catch (_) {}
   }
 
