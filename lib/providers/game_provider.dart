@@ -59,9 +59,12 @@ class GameProvider extends ChangeNotifier {
   Timer? _dropTimer;
   Timer? _persistTimer;
 
+  /// Timestamp when app last went to background (for catch-up on resume).
+  DateTime? _backgroundAt;
+
   /// Debug: when true, drop interval uses seconds instead of minutes.
   /// Set to false for production.
-  static const _debugFastDrop = true;
+  static const _debugFastDrop = false;
   static const _debugDropSeconds = 3;
 
   // ─── Flag: did we just trigger a gold bar synthesis? ──
@@ -229,6 +232,7 @@ class GameProvider extends ChangeNotifier {
 
   void onAppBackground() {
     if (_phase == AppPhase.running) {
+      _backgroundAt = DateTime.now();
       _workTimer.pause();
       _dropTimer?.cancel();
       _persistTimer?.cancel();
@@ -240,8 +244,51 @@ class GameProvider extends ChangeNotifier {
   void onAppForeground() {
     _dateObserver.onForeground();
     if (_phase == AppPhase.running) {
+      _catchUpBackgroundTime();
       _startRunning(isResume: true);
     }
+  }
+
+  /// Calculate work time and coins earned while the app was in the background,
+  /// and credit them retroactively.
+  void _catchUpBackgroundTime() {
+    final bgAt = _backgroundAt;
+    if (bgAt == null) return;
+    _backgroundAt = null;
+
+    final elapsed = DateTime.now().difference(bgAt);
+    if (elapsed.inSeconds < 60) return; // skip if less than 1 minute
+
+    final salaryConfig = _config.salaryConfig;
+    if (salaryConfig == null) return;
+
+    // Credit work time (cap at 8 hours total to be safe)
+    final catchUpSeconds =
+        (elapsed.inSeconds).clamp(0, 8 * 3600 - _todayWorkSeconds);
+    if (catchUpSeconds > 0) {
+      _todayWorkSeconds += catchUpSeconds;
+    }
+
+    // Calculate and credit coins
+    final perMinute = _calculator.perMinuteSalary(salaryConfig);
+    final catchUpMinutes = catchUpSeconds ~/ 60;
+    if (catchUpMinutes > 0) {
+      final coins = _calculator.dropCoins(perMinute, catchUpMinutes);
+      _todayCoins += coins;
+      _monthCoins += coins;
+
+      // Check gold bar synthesis
+      final oldBars = (_monthCoins - coins) ~/ goldBarThreshold;
+      final newBars = _monthCoins ~/ goldBarThreshold;
+      if (newBars > oldBars) {
+        _goldBarJustSynthesized = true;
+        _audioService.playGoldBar();
+        _hapticService.mediumImpact();
+        _notificationService.checkGoldBarMilestone(newBars);
+      }
+    }
+
+    notifyListeners();
   }
 
   // ─── Internal: start running ───────────────────────────
